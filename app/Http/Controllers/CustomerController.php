@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+use App\Filters\CustomerFilter;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Resources\CustomerCollection;
@@ -12,11 +14,21 @@ class CustomerController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $customers = Customer::paginate();
+        $filter = new CustomerFilter();
+        //Transform request into query
+        $queryItems=$filter->transform($request);
+        //include customer's related invoices to request query
+        $includeInvoices = $request->query('includeInvoices');
+        //find customers that match with request parameters
+        $customers = Customer::where($queryItems);
+        
+        if($includeInvoices){
+            $customers = $customers->with('invoices');
+        }
 
-        return new CustomerCollection($customers);
+        return new CustomerCollection($customers->paginate()->appends($request->query()));
     }
 
     /**
